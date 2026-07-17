@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>ByHofman.Healthz</PackageId>
+    <Description>Kubernetes-compatible /livez, /readyz, /healthz and opt-in /startupz endpoints for ASP.NET Core, built on the framework health checks.</Description>
+    <PackageTags>health;healthcheck;kubernetes;k8s;healthz;livez;readyz;probes;aspnetcore</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
