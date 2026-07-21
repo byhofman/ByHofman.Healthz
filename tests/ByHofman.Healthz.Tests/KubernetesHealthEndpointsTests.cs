@@ -52,29 +52,9 @@ public class KubernetesHealthEndpointsTests
     public async Task Readyz_ignores_checks_not_tagged_ready()
     {
         var client = await StartAsync(
-            checks => checks.AddCheck("startup-only", () => HealthCheckResult.Unhealthy(), tags: [HealthTags.Startup]));
+            checks => checks.AddCheck("untagged", () => HealthCheckResult.Unhealthy(), tags: ["other"]));
 
         var response = await client.GetAsync("/readyz");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Startupz_is_not_mapped_by_default()
-    {
-        var client = await StartAsync();
-
-        var response = await client.GetAsync("/startupz");
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Startupz_is_mapped_when_enabled()
-    {
-        var client = await StartAsync(configure: options => options.MapStartup = true);
-
-        var response = await client.GetAsync("/startupz");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

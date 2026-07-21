@@ -10,7 +10,7 @@ namespace ByHofman.Healthz;
 public static class KubernetesHealthEndpoints
 {
     /// <summary>
-    /// Maps <c>/livez</c> and <c>/readyz</c> (and, per options, <c>/healthz</c> and <c>/startupz</c>).
+    /// Maps <c>/livez</c> and <c>/readyz</c> (and, per options, <c>/healthz</c>).
     /// Requires the health-check services to be registered (<c>AddHealthChecks()</c>).
     /// </summary>
     public static IEndpointRouteBuilder MapKubernetesHealthChecks(
@@ -28,9 +28,6 @@ public static class KubernetesHealthEndpoints
 
         MapProbe(endpoints, options.LivenessPath, _ => false, writer);
         MapProbe(endpoints, options.ReadinessPath, registration => registration.Tags.Contains(options.ReadyTag), writer);
-
-        if (options.MapStartup)
-            MapProbe(endpoints, options.StartupPath, registration => registration.Tags.Contains(options.StartupTag), writer);
 
         if (options.IncludeHealthz)
             MapProbe(endpoints, options.HealthzPath, _ => true, writer);

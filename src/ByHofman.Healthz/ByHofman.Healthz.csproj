@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>ByHofman.Healthz</PackageId>
-    <Description>Kubernetes-compatible /livez, /readyz, /healthz and opt-in /startupz endpoints for ASP.NET Core, built on the framework health checks.</Description>
+    <Description>Kubernetes-compatible /livez, /readyz and /healthz endpoints for ASP.NET Core, built on the framework health checks.</Description>
     <PackageTags>health;healthcheck;kubernetes;k8s;healthz;livez;readyz;probes;aspnetcore</PackageTags>
   </PropertyGroup>
 
