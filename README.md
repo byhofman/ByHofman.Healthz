@@ -11,12 +11,10 @@ tags model.
 | `/livez`    | no checks            | liveness     | yes               |
 | `/readyz`   | checks tagged `ready`| readiness    | yes               |
 | `/healthz`  | all checks           | (aggregate)  | yes (toggle off)  |
-| `/startupz` | checks tagged `startup` | startup   | no (opt-in)       |
 
 `/livez`, `/readyz` and `/healthz` are the endpoint names the Kubernetes API server itself
-exposes. There is no standard `/startupz` endpoint — the startup *probe* is a probe type, not a
-named endpoint — so it is opt-in. The common pattern is to point your `startupProbe` at `/livez`
-with a generous `failureThreshold`.
+exposes. The startup *probe* is a probe type, not a named endpoint — the common pattern is to
+point your `startupProbe` at `/livez` with a generous `failureThreshold`.
 
 ## Install
 
@@ -28,8 +26,7 @@ dotnet add package ByHofman.Healthz
 
 ```csharp
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseCheck>("db", tags: [HealthTags.Ready])
-    .AddCheck<MigrationsCheck>("migrations", tags: [HealthTags.Startup]);
+    .AddCheck<DatabaseCheck>("db", tags: [HealthTags.Ready]);
 
 var app = builder.Build();
 
@@ -37,7 +34,6 @@ app.MapKubernetesHealthChecks();
 // or configure:
 app.MapKubernetesHealthChecks(o =>
 {
-    o.MapStartup = true;          // adds /startupz (default false)
     o.IncludeHealthz = false;     // drop the /healthz aggregate (default true)
     o.WriteJsonResponse = true;   // JSON body instead of plain text (default false)
     // every path and tag is configurable too
@@ -48,7 +44,6 @@ Tags are exposed as constants so you never hard-code strings:
 
 ```csharp
 HealthTags.Ready    // "ready"
-HealthTags.Startup  // "startup"
 ```
 
 ## Kubernetes probes
