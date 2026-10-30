@@ -11,6 +11,12 @@ internal static class HealthResponseWriter
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
+    public static Task WritePlainTextAsync(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "text/plain";
+        return context.Response.WriteAsync(report.Status.ToString());
+    }
+
     public static Task WriteJsonAsync(HttpContext context, HealthReport report)
     {
         context.Response.ContentType = "application/json; charset=utf-8";
@@ -26,8 +32,4 @@ internal static class HealthResponseWriter
 
         return context.Response.WriteAsync(JsonSerializer.Serialize(payload, SerializerOptions));
     }
-
-    private sealed record HealthPayload(string Status, double TotalDurationMs, IReadOnlyList<HealthEntry> Checks);
-
-    private sealed record HealthEntry(string Name, string Status, string? Description, double DurationMs);
 }
