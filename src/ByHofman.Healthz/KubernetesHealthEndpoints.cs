@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace ByHofman.Healthz;
@@ -12,6 +12,7 @@ public static class KubernetesHealthEndpoints
     /// <summary>
     /// Maps <c>/livez</c> and <c>/readyz</c> (and, per options, <c>/healthz</c>).
     /// Requires the health-check services to be registered (<c>AddHealthChecks()</c>).
+    /// Each endpoint reuses its report for <see cref="KubernetesHealthOptions.CacheDuration"/>.
     /// </summary>
     public static IEndpointRouteBuilder MapKubernetesHealthChecks(
         this IEndpointRouteBuilder endpoints,
@@ -24,13 +25,17 @@ public static class KubernetesHealthEndpoints
 
         var writer = options.WriteJsonResponse
             ? (Func<HttpContext, HealthReport, Task>)HealthResponseWriter.WriteJsonAsync
-            : null;
+            : HealthResponseWriter.WritePlainTextAsync;
+        var timeProvider = endpoints.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
 
-        MapProbe(endpoints, options.LivenessPath, _ => false, writer);
-        MapProbe(endpoints, options.ReadinessPath, registration => registration.Tags.Contains(options.ReadyTag), writer);
+        HealthProbe Probe(Func<HealthCheckRegistration, bool> predicate) =>
+            new(predicate, options.CacheDuration, timeProvider);
+
+        MapProbe(endpoints, options.LivenessPath, Probe(_ => false), writer);
+        MapProbe(endpoints, options.ReadinessPath, Probe(registration => registration.Tags.Contains(options.ReadyTag)), writer);
 
         if (options.IncludeHealthz)
-            MapProbe(endpoints, options.HealthzPath, _ => true, writer);
+            MapProbe(endpoints, options.HealthzPath, Probe(_ => true), writer);
 
         return endpoints;
     }
@@ -38,13 +43,22 @@ public static class KubernetesHealthEndpoints
     private static void MapProbe(
         IEndpointRouteBuilder endpoints,
         string path,
-        Func<HealthCheckRegistration, bool> predicate,
-        Func<HttpContext, HealthReport, Task>? writer)
+        HealthProbe probe,
+        Func<HttpContext, HealthReport, Task> writer)
     {
-        var healthOptions = new HealthCheckOptions { Predicate = predicate };
-        if (writer is not null)
-            healthOptions.ResponseWriter = writer;
+        endpoints.Map(path, async context =>
+        {
+            var healthChecks = context.RequestServices.GetRequiredService<HealthCheckService>();
+            var report = await probe.GetReportAsync(healthChecks);
 
-        endpoints.MapHealthChecks(path, healthOptions);
+            context.Response.StatusCode = report.Status == HealthStatus.Unhealthy
+                ? StatusCodes.Status503ServiceUnavailable
+                : StatusCodes.Status200OK;
+            context.Response.Headers.CacheControl = "no-store, no-cache";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "Thu, 01 Jan 1970 00:00:00 GMT";
+
+            await writer(context, report);
+        });
     }
 }

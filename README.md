@@ -59,6 +59,17 @@ Liveness runs no checks (a dependency blip must never restart the pod); readines
 
 Status codes follow the framework defaults: `Healthy`/`Degraded` → `200`, `Unhealthy` → `503`.
 
+## Caching
+
+Health endpoints are public and cheap to call, and the checks behind them (a database round trip, a
+downstream ping) are not. Each endpoint therefore reuses its report for `CacheDuration` (default 5
+seconds): however many requests arrive, the checks run at most once per window, and concurrent requests
+share the run in flight. The response itself is still sent `no-store`, so no proxy serves a stale status.
+
+```csharp
+app.MapKubernetesHealthChecks(o => o.CacheDuration = TimeSpan.FromSeconds(2)); // TimeSpan.Zero turns it off
+```
+
 ## License
 
 MIT
